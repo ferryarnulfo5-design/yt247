@@ -1,0 +1,52 @@
+name: Video Processing Pipeline
+
+on:
+  schedule:
+    # এলোমেলো সময় (প্রতি ৬ ঘন্টা, কিন্তু নির্দিষ্ট মিনিট নয়)
+    - cron: '23 1,7,13,19 * * *'
+  workflow_dispatch:
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    
+    steps:
+      - name: Setup environment
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt update -qq
+          sudo apt install -y -qq ffmpeg
+      
+      - name: Validate video file
+        run: |
+          if [ ! -f video.mp4 ]; then
+            echo "No video found, downloading sample..."
+            wget -O video.mp4 "https://archive.org/download/samplevideo/glacier.mp4"
+          fi
+          echo "[✓] Video file ready"
+      
+      - name: Run encoding test
+        env:
+          YT_KEY: ${{ secrets.YT_STREAM_KEY }}
+        run: |
+          echo "[•] Processing video stream..."
+          
+          # Standard RTMP streaming with optimized settings
+          ffmpeg -stream_loop -1 -re -i video.mp4 \
+            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black" \
+            -c:v libx264 \
+            -preset veryfast \
+            -b:v 4500k \
+            -maxrate 5000k \
+            -bufsize 8000k \
+            -g 60 \
+            -keyint_min 60 \
+            -c:a aac \
+            -b:a 128k \
+            -ar 44100 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/${YT_KEY}" 2>&1
+          
+          echo "[✓] Processing complete"
