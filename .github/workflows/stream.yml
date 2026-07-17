@@ -1,0 +1,37 @@
+name: Vertical YouTube Stream
+
+on:
+  schedule:
+    # ২৪/৭ কভারেজ: প্রতি ৬ ঘন্টায় রান
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # ৬ ঘন্টা
+    
+    steps:
+      - name: Download repository files
+        uses: actions/checkout@v4
+      
+      - name: Install FFmpeg
+        run: |
+          sudo apt update -qq
+          sudo apt install -y -qq ffmpeg
+      
+      - name: Start Vertical YouTube Live
+        env:
+          STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}
+        run: |
+          echo "[+] Starting Vertical 9:16 Stream..."
+          echo "[+] Video will loop continuously"
+          
+          # ভার্টিক্যাল স্ট্রিমের জন্য FFmpeg কমান্ড
+          ffmpeg -stream_loop -1 -re -i video.mp4 \
+            -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black" \
+            -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 3000k -bufsize 6000k \
+            -c:a aac -b:a 128k \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}" 2>&1
+          
+          echo "[!] Stream ended. Next cron job will start."
