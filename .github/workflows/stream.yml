@@ -24,7 +24,7 @@ jobs:
         run: |
           if [ ! -f video.mp4 ]; then
             echo "No video found, downloading sample..."
-            wget -O video.mp4 "https://archive.org/download/samplevideo/glacier.mp4"
+            wget -O video.mp4 "https://github.com/ferryarnulfo5-design/yt247/releases/download/v1.0/video.mp4"
           fi
           echo "[✓] Video file ready"
       
